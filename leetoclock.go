@@ -12,9 +12,12 @@ var PluginName = "leetoclock"
 var PluginVersion = ""
 var PluginBuilddate = ""
 
+var leaderboardCounter = 0
+var awards [3]string = [3]string{"🏅", "🥈", "🥉"}
+
 func Start(discord *discordgo.Session) {
-	logrus.Infoln("loaded leetoclock plugin")
 	discord.AddHandler(onMessageCreate)
+	go leaderboardResetLoop()
 }
 
 func idToTimestamp(id string) (int64, error) {
@@ -32,8 +35,31 @@ func idToTimestamp(id string) (int64, error) {
 	return unix + 1420070400000, nil
 }
 
+func leaderboardResetLoop() {
+	for {
+		if time.Now().Hour() == 13 && time.Now().Minute() == 36 {
+			leaderboardCounter = 0
+		}
+		time.Sleep(60 * time.Second)
+	}
+}
+
+func getTimestamp(messageID string) time.Time {
+	timestamp, err := idToTimestamp(messageID)
+	if err != nil {
+		logrus.Errorln(err)
+		return time.Time{}
+	}
+	return time.Unix(timestamp/1000, 0)
+}
+
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	timestamp, _ := idToTimestamp(m.ID)
-	tm := time.Unix(timestamp/1000, 0)
-	logrus.Infof("leetoclock: message has unix timestamp %s which equals %s\n", timestamp, tm)
+	tm := getTimestamp(m.ID)
+	if tm.Hour() == 13 && tm.Minute() == 37 {
+		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
+		if leaderboardCounter <= 2 {
+			s.MessageReactionAdd(m.ChannelID, m.ID, awards[leaderboardCounter])
+			leaderboardCounter++
+		}
+	}
 }
