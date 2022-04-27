@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strconv"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 var PluginName = "leetoclock"
 var PluginVersion = ""
 var PluginBuilddate = ""
+
+var targetChannel string = "225303764108705793"
 
 type targetTime struct {
 	hour   string
@@ -32,12 +35,16 @@ var tt targetTime = targetTime{
 	minute: "37",
 }
 
-var leaderboardCounter = 0
+var participantsList []*discordgo.Message
+var session *discordgo.Session
 var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
 
 func Start(discord *discordgo.Session) {
 	discord.AddHandler(onMessageCreate)
+	participantsList = make([]*discordgo.Message, 0)
+	session = discord
 	go leaderboardResetLoop()
+	go winnerAnnounceLoop()
 }
 
 func idToTimestamp(id string) (int64, error) {
@@ -58,9 +65,48 @@ func idToTimestamp(id string) (int64, error) {
 func leaderboardResetLoop() {
 	for {
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
-			leaderboardCounter = 0
+			participantsList = make([]*discordgo.Message, 0)
 		}
 		time.Sleep(60 * time.Second)
+	}
+}
+
+func winnerAnnounceLoop() {
+	sleepDelay := 60
+	for {
+		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
+			sleepDelay = 1
+		}
+		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt() {
+			timestamps := make([]int64, 0)
+			for _, v := range participantsList {
+				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
+			}
+			sort.Slice(timestamps, func(i, j int) bool {
+				return timestamps[i] < timestamps[j]
+			})
+
+			for i, v := range timestamps {
+				for _, p := range participantsList {
+					if getTimestamp(p.ID).UnixMilli() == v {
+						switch i {
+						case 0:
+							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+						case 1:
+							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+						case 2:
+							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+						default:
+							session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
+						}
+					}
+				}
+			}
+		}
+		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
+			sleepDelay = 60
+		}
+		time.Sleep(time.Duration(sleepDelay) * time.Second)
 	}
 }
 
@@ -77,9 +123,8 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	tm := getTimestamp(m.ID)
 	if tm.Hour() == tt.getHourAsInt() && tm.Minute() == tt.getMinuteAsInt() {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
-		if leaderboardCounter <= 2 {
-			s.MessageReactionAdd(m.ChannelID, m.ID, awards[leaderboardCounter])
-			leaderboardCounter++
+		if m.ChannelID == targetChannel {
+			participantsList = append(participantsList, m.Message)
 		}
 	}
 }
