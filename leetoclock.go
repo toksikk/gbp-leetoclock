@@ -12,6 +12,26 @@ var PluginName = "leetoclock"
 var PluginVersion = ""
 var PluginBuilddate = ""
 
+type targetTime struct {
+	hour   string
+	minute string
+}
+
+func (tt targetTime) getHourAsInt() int {
+	r, _ := strconv.Atoi(tt.hour)
+	return r
+}
+
+func (tt targetTime) getMinuteAsInt() int {
+	r, _ := strconv.Atoi(tt.minute)
+	return r
+}
+
+var tt targetTime = targetTime{
+	hour:   "13",
+	minute: "37",
+}
+
 var leaderboardCounter = 0
 var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
 
@@ -37,7 +57,7 @@ func idToTimestamp(id string) (int64, error) {
 
 func leaderboardResetLoop() {
 	for {
-		if time.Now().Hour() == 13 && time.Now().Minute() == 36 {
+		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
 			leaderboardCounter = 0
 		}
 		time.Sleep(60 * time.Second)
@@ -55,7 +75,7 @@ func getTimestamp(messageID string) time.Time {
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	tm := getTimestamp(m.ID)
-	if tm.Hour() == 13 && tm.Minute() == 37 {
+	if tm.Hour() == tt.getHourAsInt() && tm.Minute() == tt.getMinuteAsInt() {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if leaderboardCounter <= 2 {
 			s.MessageReactionAdd(m.ChannelID, m.ID, awards[leaderboardCounter])
