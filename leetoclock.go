@@ -13,7 +13,7 @@ var PluginVersion = ""
 var PluginBuilddate = ""
 
 var leaderboardCounter = 0
-var awards [3]string = [3]string{"🏅", "🥈", "🥉"}
+var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
 
 func Start(discord *discordgo.Session) {
 	discord.AddHandler(onMessageCreate)
