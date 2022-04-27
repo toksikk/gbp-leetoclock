@@ -50,7 +50,7 @@ func getTimestamp(messageID string) time.Time {
 		logrus.Errorln(err)
 		return time.Time{}
 	}
-	return time.Unix(timestamp/1000, 0)
+	return time.UnixMilli(timestamp)
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
