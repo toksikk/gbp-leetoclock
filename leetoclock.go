@@ -71,9 +71,22 @@ func leaderboardResetLoop() {
 	}
 }
 
+func isAwarded(awardedUsers *[]*discordgo.User, user discordgo.User) bool {
+	for _, v := range *awardedUsers {
+		if v.ID == user.ID {
+			return true
+		}
+	}
+	return false
+}
+
 func winnerAnnounceLoop() {
 	sleepDelay := 60
+	awardedUsers := make([]*discordgo.User, 0)
+	c := 0
 	for {
+		logrus.Println(awardedUsers)
+		logrus.Println(c)
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
 			sleepDelay = 1
 		}
@@ -86,24 +99,40 @@ func winnerAnnounceLoop() {
 				return timestamps[i] < timestamps[j]
 			})
 
-			for i, v := range timestamps {
+			for _, v := range timestamps {
 				for _, p := range participantsList {
 					if getTimestamp(p.ID).UnixMilli() == v {
-						switch i {
+						switch c {
 						case 0:
-							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+							if !isAwarded(&awardedUsers, *p.Author) {
+								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
+								c++
+								awardedUsers = append(awardedUsers, p.Author)
+							}
 						case 1:
-							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+							if !isAwarded(&awardedUsers, *p.Author) {
+								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
+								c++
+								awardedUsers = append(awardedUsers, p.Author)
+							}
 						case 2:
-							session.MessageReactionAdd(p.ChannelID, p.ID, awards[i])
+							if !isAwarded(&awardedUsers, *p.Author) {
+								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
+								c++
+								awardedUsers = append(awardedUsers, p.Author)
+							}
 						default:
-							session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
+							if !isAwarded(&awardedUsers, *p.Author) {
+								session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
+							}
 						}
 					}
 				}
 			}
 		}
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
+			awardedUsers = make([]*discordgo.User, 0)
+			c = 0
 			sleepDelay = 60
 		}
 		time.Sleep(time.Duration(sleepDelay) * time.Second)
