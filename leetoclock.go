@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -71,9 +72,9 @@ func leaderboardResetLoop() {
 	}
 }
 
-func isAwarded(awardedUsers *[]*discordgo.User, user discordgo.User) bool {
-	for _, v := range *awardedUsers {
-		if v.ID == user.ID {
+func isAwarded(awardedMessages *[]*discordgo.Message, user discordgo.User) bool {
+	for _, v := range *awardedMessages {
+		if v.Author.ID == user.ID {
 			return true
 		}
 	}
@@ -82,11 +83,9 @@ func isAwarded(awardedUsers *[]*discordgo.User, user discordgo.User) bool {
 
 func winnerAnnounceLoop() {
 	sleepDelay := 60
-	awardedUsers := make([]*discordgo.User, 0)
+	winningMessages := make([]*discordgo.Message, 0)
 	c := 0
 	for {
-		logrus.Println(awardedUsers)
-		logrus.Println(c)
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
 			sleepDelay = 1
 		}
@@ -104,25 +103,25 @@ func winnerAnnounceLoop() {
 					if getTimestamp(p.ID).UnixMilli() == v {
 						switch c {
 						case 0:
-							if !isAwarded(&awardedUsers, *p.Author) {
+							if !isAwarded(&winningMessages, *p.Author) {
 								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
 								c++
-								awardedUsers = append(awardedUsers, p.Author)
+								winningMessages = append(winningMessages, p)
 							}
 						case 1:
-							if !isAwarded(&awardedUsers, *p.Author) {
+							if !isAwarded(&winningMessages, *p.Author) {
 								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
 								c++
-								awardedUsers = append(awardedUsers, p.Author)
+								winningMessages = append(winningMessages, p)
 							}
 						case 2:
-							if !isAwarded(&awardedUsers, *p.Author) {
+							if !isAwarded(&winningMessages, *p.Author) {
 								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
 								c++
-								awardedUsers = append(awardedUsers, p.Author)
+								winningMessages = append(winningMessages, p)
 							}
 						default:
-							if !isAwarded(&awardedUsers, *p.Author) {
+							if !isAwarded(&winningMessages, *p.Author) {
 								session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
 							}
 						}
@@ -131,9 +130,27 @@ func winnerAnnounceLoop() {
 			}
 		}
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
-			awardedUsers = make([]*discordgo.User, 0)
 			c = 0
 			sleepDelay = 60
+
+			for k, v := range winningMessages {
+				if k == 0 {
+					session.ChannelMessageSend(targetChannel, "Today's 1337erboard:")
+				}
+				t := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), tt.getHourAsInt(), tt.getMinuteAsInt(), 0, 0, time.Now().Location())
+				if k > 2 {
+					// TODO: Avoid out of bounds. Just give everyone else bronze for now.
+					k = 2
+				}
+				s := fmt.Sprintf("%s <@%s> with %dms.", awards[k], v.Author.ID, getTimestamp(v.ID).Sub(t).Milliseconds())
+				_, err := session.ChannelMessageSend(targetChannel, s)
+				if err != nil {
+					logrus.Errorln(err)
+					break
+				}
+			}
+
+			winningMessages = make([]*discordgo.Message, 0)
 		}
 		time.Sleep(time.Duration(sleepDelay) * time.Second)
 	}
