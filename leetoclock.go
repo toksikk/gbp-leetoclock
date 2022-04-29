@@ -84,7 +84,7 @@ func isAwarded(awardedMessages *[]*discordgo.Message, user discordgo.User) bool 
 func winnerAnnounceLoop() {
 	sleepDelay := 60
 	winningMessages := make([]*discordgo.Message, 0)
-	c := 0
+	awardCounter := 0
 	for {
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
 			sleepDelay = 1
@@ -100,37 +100,20 @@ func winnerAnnounceLoop() {
 
 			for _, v := range timestamps {
 				for _, p := range participantsList {
-					if getTimestamp(p.ID).UnixMilli() == v {
-						switch c {
-						case 0:
-							if !isAwarded(&winningMessages, *p.Author) {
-								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
-								c++
-								winningMessages = append(winningMessages, p)
-							}
-						case 1:
-							if !isAwarded(&winningMessages, *p.Author) {
-								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
-								c++
-								winningMessages = append(winningMessages, p)
-							}
-						case 2:
-							if !isAwarded(&winningMessages, *p.Author) {
-								session.MessageReactionAdd(p.ChannelID, p.ID, awards[c])
-								c++
-								winningMessages = append(winningMessages, p)
-							}
-						default:
-							if !isAwarded(&winningMessages, *p.Author) {
-								session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
-							}
+					if getTimestamp(p.ID).UnixMilli() == v && !isAwarded(&winningMessages, *p.Author) {
+						if awardCounter < 3 {
+							session.MessageReactionAdd(p.ChannelID, p.ID, awards[awardCounter])
+							awardCounter++
+							winningMessages = append(winningMessages, p)
+						} else {
+							session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
 						}
 					}
 				}
 			}
 		}
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
-			c = 0
+			awardCounter = 0
 			sleepDelay = 60
 
 			for k, v := range winningMessages {
