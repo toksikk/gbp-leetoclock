@@ -121,10 +121,6 @@ func winnerAnnounceLoop() {
 					session.ChannelMessageSend(targetChannel, "Today's 1337erboard:")
 				}
 				t := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), tt.getHourAsInt(), tt.getMinuteAsInt(), 0, 0, time.Now().Location())
-				if k > 2 {
-					// TODO: Avoid out of bounds. Just give everyone else bronze for now.
-					k = 2
-				}
 				s := fmt.Sprintf("%s <@%s> with %dms.", awards[k], v.Author.ID, getTimestamp(v.ID).Sub(t).Milliseconds())
 				_, err := session.ChannelMessageSend(targetChannel, s)
 				if err != nil {
