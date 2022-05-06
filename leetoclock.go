@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -40,14 +39,13 @@ var tt targetTime = targetTime{
 var participantsList []*discordgo.Message
 var session *discordgo.Session
 var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
-var mutex sync.Mutex
 
 func Start(discord *discordgo.Session) {
 	discord.AddHandler(onMessageCreate)
 	participantsList = make([]*discordgo.Message, 0)
 	session = discord
 	go leaderboardResetLoop()
-	go winnerAnnounceLoop(&mutex)
+	go winnerAnnounceLoop()
 }
 
 func idToTimestamp(id string) (int64, error) {
@@ -83,7 +81,7 @@ func isAwarded(awardedMessages *[]*discordgo.Message, user discordgo.User) bool 
 	return false
 }
 
-func winnerAnnounceLoop(m *sync.Mutex) {
+func winnerAnnounceLoop() {
 	sleepDelay := 60
 	winningMessages := make([]*discordgo.Message, 0)
 	awardCounter := 0
@@ -92,7 +90,6 @@ func winnerAnnounceLoop(m *sync.Mutex) {
 			sleepDelay = 1
 		}
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt() {
-			mutex.Lock()
 			timestamps := make([]int64, 0)
 			for _, v := range participantsList {
 				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
@@ -114,7 +111,6 @@ func winnerAnnounceLoop(m *sync.Mutex) {
 					}
 				}
 			}
-			mutex.Unlock()
 		}
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
 			awardCounter = 0
@@ -153,9 +149,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if tm.Hour() == tt.getHourAsInt() && tm.Minute() == tt.getMinuteAsInt() {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if m.ChannelID == targetChannel {
-			mutex.Lock()
 			participantsList = append(participantsList, m.Message)
-			mutex.Unlock()
 		}
 	}
 }
