@@ -89,7 +89,7 @@ func winnerAnnounceLoop() {
 		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
 			sleepDelay = 1
 		}
-		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt() {
+		if (time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt() && len(participantsList) >= 3) || (time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1) {
 			timestamps := make([]int64, 0)
 			for _, v := range participantsList {
 				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
