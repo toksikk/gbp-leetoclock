@@ -86,10 +86,11 @@ func winnerAnnounceLoop() {
 	winningMessages := make([]*discordgo.Message, 0)
 	awardCounter := 0
 	for {
-		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()-1 {
+		currentTime := time.Now()
+		if currentTime.Hour() == tt.getHourAsInt() && currentTime.Minute() == tt.getMinuteAsInt()-1 {
 			sleepDelay = 1
 		}
-		if (time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt() && len(participantsList) >= 3) || (time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1) {
+		if (currentTime.Hour() == tt.getHourAsInt() && currentTime.Minute() == tt.getMinuteAsInt() && len(participantsList) >= 3) || (currentTime.Hour() == tt.getHourAsInt() && currentTime.Minute() == tt.getMinuteAsInt()+1) {
 			timestamps := make([]int64, 0)
 			for _, v := range participantsList {
 				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
@@ -112,7 +113,7 @@ func winnerAnnounceLoop() {
 				}
 			}
 		}
-		if time.Now().Hour() == tt.getHourAsInt() && time.Now().Minute() == tt.getMinuteAsInt()+1 {
+		if currentTime.Hour() == tt.getHourAsInt() && currentTime.Minute() == tt.getMinuteAsInt()+1 {
 			awardCounter = 0
 			sleepDelay = 60
 
@@ -120,7 +121,7 @@ func winnerAnnounceLoop() {
 				if k == 0 {
 					session.ChannelMessageSend(targetChannel, "Today's 1337erboard:")
 				}
-				t := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), tt.getHourAsInt(), tt.getMinuteAsInt(), 0, 0, time.Now().Location())
+				t := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), tt.getHourAsInt(), tt.getMinuteAsInt(), 0, 0, currentTime.Location())
 				s := fmt.Sprintf("%s <@%s> with %dms.", awards[k], v.Author.ID, getTimestamp(v.ID).Sub(t).Milliseconds())
 				_, err := session.ChannelMessageSend(targetChannel, s)
 				if err != nil {
