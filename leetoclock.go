@@ -97,12 +97,14 @@ func winnerAnnounceLoop() {
 	winningMessages := make([]*discordgo.Message, 0)
 	zonkMessages := make([]*discordgo.Message, 0)
 	awardCounter := 0
+	previousTimestampsAmount := 0
 	for {
 		currentTime := time.Now()
 		if currentTime.Hour() == btt.Hour() && currentTime.Minute() == btt.Minute() {
 			sleepDelay = 1
 		}
-		if (currentTime.Hour() == tt.Hour() && currentTime.Minute() == tt.Minute() && participatingAuthorsAmount(participantsList) >= 3) || (currentTime.Hour() == att.Hour() && currentTime.Minute() == att.Minute()) {
+		if currentTime.Hour() == tt.Hour() && currentTime.Minute() == tt.Minute() {
+
 			timestamps := make([]int64, 0)
 			for _, v := range participantsList {
 				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
@@ -110,6 +112,23 @@ func winnerAnnounceLoop() {
 			sort.Slice(timestamps, func(i, j int) bool {
 				return timestamps[i] < timestamps[j]
 			})
+
+			if len(timestamps) > previousTimestampsAmount {
+				for _, v := range winningMessages {
+					for _, a := range awards {
+						session.MessageReactionRemove(v.ChannelID, v.ID, a, session.State.User.ID)
+					}
+				}
+				for _, v := range zonkMessages {
+					session.MessageReactionRemove(v.ChannelID, v.ID, ":zonk:750630908372975636", session.State.User.ID)
+				}
+
+				winningMessages = make([]*discordgo.Message, 0)
+				zonkMessages = make([]*discordgo.Message, 0)
+				awardCounter = 0
+			}
+
+			previousTimestampsAmount = len(timestamps)
 
 			for _, v := range timestamps {
 				for _, p := range participantsList {
