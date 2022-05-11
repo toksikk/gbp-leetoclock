@@ -67,13 +67,13 @@ func leaderboardResetLoop() {
 	}
 }
 
-func containsMessageOfUser(messages *[]*discordgo.Message, user discordgo.User) bool {
-	for _, v := range *messages {
+func containsMessageOfUser(messages *[]*discordgo.Message, user discordgo.User) int {
+	for k, v := range *messages {
 		if v.Author.ID == user.ID {
-			return true
+			return k
 		}
 	}
-	return false
+	return -1
 }
 
 func participatingAuthorsAmount(messages []*discordgo.Message) int {
@@ -132,13 +132,13 @@ func winnerAnnounceLoop() {
 
 			for _, v := range timestamps {
 				for _, p := range participatingMessages {
-					if getTimestamp(p.ID).UnixMilli() == v && !containsMessageOfUser(&winningMessages, *p.Author) {
+					if getTimestamp(p.ID).UnixMilli() == v && containsMessageOfUser(&winningMessages, *p.Author) == -1 {
 						if awardCounter < 3 {
 							session.MessageReactionAdd(p.ChannelID, p.ID, awards[awardCounter])
 							awardCounter++
 							winningMessages = append(winningMessages, p)
 						} else {
-							if !containsMessageOfUser(&zonkMessages, *p.Author) {
+							if containsMessageOfUser(&zonkMessages, *p.Author) == -1 {
 								session.MessageReactionAdd(p.ChannelID, p.ID, ":zonk:750630908372975636")
 								zonkMessages = append(zonkMessages, p)
 							}
