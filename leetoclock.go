@@ -23,14 +23,14 @@ var att time.Time
 const tHour string = "13"
 const tMinute string = "37"
 
-var participantsList []*discordgo.Message
+var participatingMessages []*discordgo.Message
 var session *discordgo.Session
 var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
 
 func Start(discord *discordgo.Session) {
 	setTargetTime()
 	discord.AddHandler(onMessageCreate)
-	participantsList = make([]*discordgo.Message, 0)
+	participatingMessages = make([]*discordgo.Message, 0)
 	session = discord
 	go leaderboardResetLoop()
 	go winnerAnnounceLoop()
@@ -61,7 +61,7 @@ func idToTimestamp(id string) (int64, error) {
 func leaderboardResetLoop() {
 	for {
 		if time.Now().Hour() == btt.Hour() && time.Now().Minute() == btt.Minute() {
-			participantsList = make([]*discordgo.Message, 0)
+			participatingMessages = make([]*discordgo.Message, 0)
 		}
 		time.Sleep(60 * time.Second)
 	}
@@ -106,7 +106,7 @@ func winnerAnnounceLoop() {
 		if currentTime.Hour() == tt.Hour() && currentTime.Minute() == tt.Minute() {
 
 			timestamps := make([]int64, 0)
-			for _, v := range participantsList {
+			for _, v := range participatingMessages {
 				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
 			}
 			sort.Slice(timestamps, func(i, j int) bool {
@@ -131,7 +131,7 @@ func winnerAnnounceLoop() {
 			previousTimestampsAmount = len(timestamps)
 
 			for _, v := range timestamps {
-				for _, p := range participantsList {
+				for _, p := range participatingMessages {
 					if getTimestamp(p.ID).UnixMilli() == v && !containsMessageOfUser(&winningMessages, *p.Author) {
 						if awardCounter < 3 {
 							session.MessageReactionAdd(p.ChannelID, p.ID, awards[awardCounter])
@@ -193,7 +193,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if tm.Hour() == tt.Hour() && tm.Minute() == tt.Minute() && m.Author.ID != s.State.User.ID {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if m.ChannelID == targetChannel {
-			participantsList = append(participantsList, m.Message)
+			participatingMessages = append(participatingMessages, m.Message)
 		}
 	}
 }
