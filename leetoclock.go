@@ -190,7 +190,7 @@ func getTimestamp(messageID string) time.Time {
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	tm := getTimestamp(m.ID)
-	if tm.Hour() == tt.Hour() && tm.Minute() == tt.Minute() &&  m.Author.ID != s.State.User.ID {
+	if tm.Hour() == tt.Hour() && tm.Minute() == tt.Minute() && m.Author.ID != s.State.User.ID {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if m.ChannelID == targetChannel {
 			participantsList = append(participantsList, m.Message)
