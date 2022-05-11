@@ -193,7 +193,30 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if tm.Hour() == tt.Hour() && tm.Minute() == tt.Minute() && m.Author.ID != s.State.User.ID {
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if m.ChannelID == targetChannel {
-			participatingMessages = append(participatingMessages, m.Message)
+			newMessages := make([]*discordgo.Message, 0)
+
+			i := containsMessageOfUser(&participatingMessages, *m.Message.Author)
+
+			for k, v := range participatingMessages {
+				if k != i {
+					newMessages = append(newMessages, v)
+				} else {
+					if getTimestamp(m.Message.ID).UnixMilli() < getTimestamp(v.ID).UnixMilli() {
+						newMessages = append(newMessages, m.Message)
+					} else {
+						newMessages = append(newMessages, v)
+					}
+				}
+			}
+
+			if len(participatingMessages) == 0 || i == -1 {
+				newMessages = append(newMessages, m.Message)
+			}
+
+			participatingMessages = make([]*discordgo.Message, 0)
+			for _, v := range newMessages {
+				participatingMessages = append(participatingMessages, v)
+			}
 		}
 	}
 }
