@@ -2,60 +2,72 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
+	"github.com/toksikk/gbp-leetoclock/pkg/datastore"
+	"github.com/toksikk/gbp-leetoclock/pkg/helper"
 )
 
 var PluginName = "leetoclock"
 var PluginVersion = ""
 var PluginBuilddate = ""
 
-var targetChannel string = "225303764108705793"
+var targetChannel string
 
 var tt time.Time
 var btt time.Time
 var att time.Time
 
-const tHour string = "13"
-const tMinute string = "37"
+var tHour, tMinute = "13", "37"
 
 var participatingMessages []*discordgo.Message
 var session *discordgo.Session
 var awards [3]string = [3]string{"🥇", "🥈", "🥉"}
 
+var store *datastore.Store
+
 func Start(discord *discordgo.Session) {
-	setTargetTime()
-	discord.AddHandler(onMessageCreate)
-	participatingMessages = make([]*discordgo.Message, 0)
 	session = discord
+	store = datastore.NewStore(datastore.InitDB())
+	participatingMessages = make([]*discordgo.Message, 0)
+	session.AddHandler(onMessageCreate)
+	setTargetTime()
+	setTargetChannel()
 	go leaderboardResetLoop()
 	go winnerAnnounceLoop()
 }
 
+func getCurrentTimeForDebugging() (string, string) {
+	t := time.Now()
+	hour := strconv.Itoa(t.Hour())
+	minute := strconv.Itoa(t.Minute() + 1)
+	return hour, minute
+}
+
+func setTargetChannel() {
+	if os.Getenv("LEETOCLOCK_DEBUG_CHANNEL") != "" {
+		targetChannel = os.Getenv("LEETOCLOCK_DEBUG_CHANNEL")
+		t := time.Now()
+		tt = time.Date(t.Year(), t.Month(), t.Day(), tt.Hour(), tt.Minute(), 0, 0, t.Location())
+		session.ChannelMessageSend(targetChannel, fmt.Sprintf("Target time: <t:%d:R>", tt.Unix()))
+	} else {
+		targetChannel = "225303764108705793"
+	}
+}
+
 func setTargetTime() {
+	if os.Getenv("LEETOCLOCK_DEBUG") != "" {
+		tHour, tMinute = getCurrentTimeForDebugging()
+	}
 	ttString := fmt.Sprintf("2006-01-02T%s:%s:00Z", tHour, tMinute)
 	tt, _ = time.Parse(time.RFC3339, ttString)
 	btt = tt.Add(-time.Minute * 1)
 	att = tt.Add(time.Minute * 1)
-}
-
-func idToTimestamp(id string) (int64, error) {
-	convertedID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		return -1, err
-	}
-	convertedIDString := strconv.FormatInt(convertedID, 2)
-	m := 64 - len(convertedIDString)
-	unixbin := convertedIDString[0 : 42-m]
-	unix, err := strconv.ParseInt(unixbin, 2, 64)
-	if err != nil {
-		return -1, err
-	}
-	return unix + 1420070400000, nil
 }
 
 func leaderboardResetLoop() {
@@ -76,22 +88,6 @@ func containsMessageOfUser(messages *[]*discordgo.Message, user discordgo.User) 
 	return -1
 }
 
-func participatingAuthorsAmount(messages []*discordgo.Message) int {
-	authors := make([]string, 0)
-	for _, v := range messages {
-		exists := false
-		for _, a := range authors {
-			if a == v.Author.ID {
-				exists = true
-			}
-		}
-		if !exists {
-			authors = append(authors, v.Author.ID)
-		}
-	}
-	return len(authors)
-}
-
 func winnerAnnounceLoop() {
 	sleepDelay := 60
 	winningMessages := make([]*discordgo.Message, 0)
@@ -107,7 +103,7 @@ func winnerAnnounceLoop() {
 
 			timestamps := make([]int64, 0)
 			for _, v := range participatingMessages {
-				timestamps = append(timestamps, getTimestamp(v.ID).UnixMilli())
+				timestamps = append(timestamps, helper.GetTimestamp(v.ID).UnixMilli())
 			}
 			sort.Slice(timestamps, func(i, j int) bool {
 				return timestamps[i] < timestamps[j]
@@ -132,7 +128,7 @@ func winnerAnnounceLoop() {
 
 			for _, v := range timestamps {
 				for _, p := range participatingMessages {
-					if getTimestamp(p.ID).UnixMilli() == v && containsMessageOfUser(&winningMessages, *p.Author) == -1 {
+					if helper.GetTimestamp(p.ID).UnixMilli() == v && containsMessageOfUser(&winningMessages, *p.Author) == -1 {
 						if awardCounter < 3 {
 							session.MessageReactionAdd(p.ChannelID, p.ID, awards[awardCounter])
 							awardCounter++
@@ -156,16 +152,40 @@ func winnerAnnounceLoop() {
 				if k == 0 {
 					session.ChannelMessageSend(targetChannel, "Today's 1337erboard:")
 				}
-				s := fmt.Sprintf("%s <@%s> with %dms.", awards[k], v.Author.ID, getTimestamp(v.ID).Sub(t).Milliseconds())
-				_, err := session.ChannelMessageSend(targetChannel, s)
+				s := fmt.Sprintf("%s <@%s> with %dms.", awards[k], v.Author.ID, helper.GetTimestamp(v.ID).Sub(t).Milliseconds())
+				player, err := store.GetPlayerByUserID(v.Author.ID)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				game, err := store.GetGameByChannelID(targetChannel)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				err = store.CreateScore(v.ID, player.ID, int(helper.GetTimestamp(v.ID).Sub(t).Milliseconds()), game.ID)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				_, err = session.ChannelMessageSend(targetChannel, s)
 				if err != nil {
 					logrus.Errorln(err)
 					break
 				}
 			}
 			for _, v := range zonkMessages {
-				s := fmt.Sprintf("🏅 <@%s> with %dms.", v.Author.ID, getTimestamp(v.ID).Sub(t).Milliseconds())
-				_, err := session.ChannelMessageSend(targetChannel, s)
+				s := fmt.Sprintf("🏅 <@%s> with %dms.", v.Author.ID, helper.GetTimestamp(v.ID).Sub(t).Milliseconds())
+				player, err := store.GetPlayerByUserID(v.Author.ID)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				game, err := store.GetGameByChannelID(targetChannel)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				err = store.CreateScore(v.ID, player.ID, int(helper.GetTimestamp(v.ID).Sub(t).Milliseconds()), game.ID)
+				if err != nil {
+					logrus.Errorln(err)
+				}
+				_, err = session.ChannelMessageSend(targetChannel, s)
 				if err != nil {
 					logrus.Errorln(err)
 					break
@@ -179,18 +199,22 @@ func winnerAnnounceLoop() {
 	}
 }
 
-func getTimestamp(messageID string) time.Time {
-	timestamp, err := idToTimestamp(messageID)
-	if err != nil {
-		logrus.Errorln(err)
-		return time.Time{}
-	}
-	return time.UnixMilli(timestamp)
-}
-
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	tm := getTimestamp(m.ID)
+	tm := helper.GetTimestamp(m.ID)
 	if tm.Hour() == tt.Hour() && tm.Minute() == tt.Minute() && m.Author.ID != s.State.User.ID {
+		season, err := store.EnsureSeason(time.Now())
+		if err != nil {
+			logrus.Errorln(err)
+			season.ID = 0
+		}
+		err = store.CreateGame(m.ChannelID, time.Now(), season.ID)
+		if err != nil {
+			logrus.Errorln(err)
+		}
+		err = store.CreatePlayer(m.Author.ID)
+		if err != nil {
+			logrus.Errorln(err)
+		}
 		s.MessageReactionAdd(m.ChannelID, m.ID, "⏰")
 		if m.ChannelID == targetChannel {
 			newMessages := make([]*discordgo.Message, 0)
@@ -201,7 +225,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if k != i {
 					newMessages = append(newMessages, v)
 				} else {
-					if getTimestamp(m.Message.ID).UnixMilli() < getTimestamp(v.ID).UnixMilli() {
+					if helper.GetTimestamp(m.Message.ID).UnixMilli() < helper.GetTimestamp(v.ID).UnixMilli() {
 						newMessages = append(newMessages, m.Message)
 					} else {
 						newMessages = append(newMessages, v)
