@@ -125,7 +125,7 @@ func getSeasonEndDateForDate(date time.Time) time.Time {
 
 func (s *Store) EnsureSeason(date time.Time) (*Season, error) {
 	zeroedDate := zeroTime(date)
-	var season Season
+	var season Season = Season{StartDate: getSeasonStartDateForDate(zeroedDate), EndDate: getSeasonEndDateForDate(zeroedDate)}
 	result := s.db.Where("start_date <= ? AND end_date >= ?", zeroedDate, zeroedDate).First(&season)
 	if result.Error != nil {
 		if result.Error.Error() == "record not found" {
@@ -172,7 +172,7 @@ func (s *Store) GetSeasonByDate(date time.Time) (*Season, error) {
 // PLAYER
 
 func (s *Store) CreatePlayer(userID string) error {
-	var player Player
+	var player Player = Player{UserID: userID}
 	result := s.db.FirstOrCreate(&player, Player{UserID: userID})
 	if result.Error != nil {
 		return result.Error
@@ -211,7 +211,7 @@ func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
 
 func (s *Store) CreateGame(channelID string, gameDate time.Time, seasonID uint) error {
 	zeroedGameDate := zeroTime(gameDate)
-	var game Game
+	var game Game = Game{ChannelID: channelID, GameDate: zeroedGameDate, SeasonID: seasonID}
 	result := s.db.FirstOrCreate(&game, Game{ChannelID: channelID, GameDate: zeroedGameDate, SeasonID: seasonID})
 	if result.Error != nil {
 		return result.Error
@@ -259,7 +259,7 @@ func (s *Store) GetGameByDate(date time.Time) (*Game, error) {
 // SCORE
 
 func (s *Store) CreateScore(messageID string, playerID uint, score int, gameID uint) error {
-	var scoreObj Score
+	var scoreObj Score = Score{MessageID: messageID, PlayerID: playerID, Score: score, GameID: gameID}
 	result := s.db.FirstOrCreate(&scoreObj, Score{PlayerID: playerID, GameID: gameID})
 	if result.Error != nil {
 		return result.Error
@@ -288,7 +288,7 @@ func (s *Store) GetScoreByID(id uint) (*Score, error) {
 // HIGHSCORE
 
 func (s *Store) CreateHighscore(playerID uint, scoreID uint, seasonID uint) error {
-	var highscore Highscore
+	var highscore Highscore = Highscore{PlayerID: playerID, ScoreID: scoreID, SeasonID: seasonID}
 	result := s.db.FirstOrCreate(&highscore, Highscore{PlayerID: playerID, ScoreID: scoreID, SeasonID: seasonID})
 	if result.Error != nil {
 		return result.Error
