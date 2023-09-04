@@ -22,7 +22,7 @@ func idToTimestamp(id string) (int64, error) {
 	return unix + 1420070400000, nil
 }
 
-func GetTimestamp(messageID string) time.Time {
+func GetTimestampOfMessage(messageID string) time.Time {
 	timestamp, err := idToTimestamp(messageID)
 	if err != nil {
 		logrus.Errorln(err)

@@ -180,6 +180,22 @@ func (s *Store) CreatePlayer(userID string) error {
 	return nil
 }
 
+func (s *Store) EnsurePlayer(userID string) (*Player, error) {
+	var player Player = Player{UserID: userID}
+	result := s.db.Where("user_id = ?", userID).First(&player)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			result := s.db.Create(&player)
+			if result.Error != nil {
+				return nil, result.Error
+			}
+		} else {
+			return nil, result.Error
+		}
+	}
+	return &player, nil
+}
+
 func (s *Store) GetPlayers() ([]Player, error) {
 	var players []Player
 	result := s.db.Find(&players)
@@ -210,13 +226,28 @@ func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
 // GAME
 
 func (s *Store) CreateGame(channelID string, gameDate time.Time, seasonID uint) error {
-	zeroedGameDate := zeroTime(gameDate)
-	var game Game = Game{ChannelID: channelID, GameDate: zeroedGameDate, SeasonID: seasonID}
-	result := s.db.Create(&game)
+	var game Game = Game{ChannelID: channelID, GameDate: gameDate, SeasonID: seasonID}
+	result := s.db.FirstOrCreate(&game)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
+}
+
+func (s *Store) EnsureGame(channelID string, gameDate time.Time, seasonID uint) (*Game, error) {
+	var game Game = Game{ChannelID: channelID, GameDate: gameDate, SeasonID: seasonID}
+	result := s.db.Where("channel_id = ? AND game_date = ? AND season_id = ?", channelID, gameDate, seasonID).First(&game)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			result := s.db.Create(&game)
+			if result.Error != nil {
+				return nil, result.Error
+			}
+		} else {
+			return nil, result.Error
+		}
+	}
+	return &game, nil
 }
 
 func (s *Store) GetGames() ([]Game, error) {
@@ -237,20 +268,35 @@ func (s *Store) GetGameByID(id uint) (*Game, error) {
 	return &game, nil
 }
 
-func (s *Store) GetGameByChannelID(channelID string) (*Game, error) {
-	var game Game
-	result := s.db.Where("channel_id = ?", channelID).First(&game)
+func (s *Store) GetGamesByChannelID(channelID string) ([]Game, error) {
+	var games []Game
+	result := s.db.Where("channel_id = ?", channelID).Find(&games)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return &game, nil
+	return games, nil
 }
 
-func (s *Store) GetGameByDate(date time.Time) (*Game, error) {
-	zeroedDate := zeroTime(date)
-	var game Game
-	result := s.db.Where("game_date = ?", zeroedDate).First(&game)
+func (s *Store) GetGamesByDate(date time.Time) ([]Game, error) {
+	var games []Game
+	startDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endDate := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 0, date.Location())
+	result := s.db.Where("game_date >= ? AND game_date <= ?", startDate, endDate).Find(&games)
 	if result.Error != nil {
+		return nil, result.Error
+	}
+	return games, nil
+}
+
+func (s *Store) GetGameBySpecificDateTimeAndChannelID(gameDate time.Time, channelID string) (*Game, error) {
+	var game Game
+	result := s.db.Where("game_date = ? AND channel_id = ?", gameDate, channelID).First(&game)
+	if result.Error != nil {
+		logrus.Errorln("AN ERROR OCCURED")
+		games, _ := s.GetGames()
+		for _, g := range games {
+			logrus.Infoln(g)
+		}
 		return nil, result.Error
 	}
 	return &game, nil
@@ -283,6 +329,15 @@ func (s *Store) GetScoreByID(id uint) (*Score, error) {
 		return nil, result.Error
 	}
 	return &score, nil
+}
+
+func (s *Store) GetScoresForGameID(gameID uint) ([]Score, error) {
+	var scores []Score
+	result := s.db.Where("game_id = ?", gameID).Find(&scores)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return scores, nil
 }
 
 // HIGHSCORE
