@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -128,9 +129,8 @@ func (s *Store) EnsureSeason(date time.Time) (*Season, error) {
 	var season Season = Season{StartDate: getSeasonStartDateForDate(zeroedDate), EndDate: getSeasonEndDateForDate(zeroedDate)}
 	result := s.db.Where("start_date <= ? AND end_date >= ?", zeroedDate, zeroedDate).First(&season)
 	if result.Error != nil {
-		if result.Error.Error() == "record not found" {
-			// Create season
-			result := s.db.FirstOrCreate(&season, Season{StartDate: getSeasonStartDateForDate(zeroedDate), EndDate: getSeasonEndDateForDate(zeroedDate)})
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			result := s.db.Create(&season)
 			if result.Error != nil {
 				return nil, result.Error
 			}
@@ -173,7 +173,7 @@ func (s *Store) GetSeasonByDate(date time.Time) (*Season, error) {
 
 func (s *Store) CreatePlayer(userID string) error {
 	var player Player = Player{UserID: userID}
-	result := s.db.FirstOrCreate(&player, Player{UserID: userID})
+	result := s.db.Create(&player)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -212,7 +212,7 @@ func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
 func (s *Store) CreateGame(channelID string, gameDate time.Time, seasonID uint) error {
 	zeroedGameDate := zeroTime(gameDate)
 	var game Game = Game{ChannelID: channelID, GameDate: zeroedGameDate, SeasonID: seasonID}
-	result := s.db.FirstOrCreate(&game, Game{ChannelID: channelID, GameDate: zeroedGameDate, SeasonID: seasonID})
+	result := s.db.Create(&game)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -260,7 +260,7 @@ func (s *Store) GetGameByDate(date time.Time) (*Game, error) {
 
 func (s *Store) CreateScore(messageID string, playerID uint, score int, gameID uint) error {
 	var scoreObj Score = Score{MessageID: messageID, PlayerID: playerID, Score: score, GameID: gameID}
-	result := s.db.FirstOrCreate(&scoreObj, Score{PlayerID: playerID, GameID: gameID})
+	result := s.db.Create(&scoreObj)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -289,7 +289,7 @@ func (s *Store) GetScoreByID(id uint) (*Score, error) {
 
 func (s *Store) CreateHighscore(playerID uint, scoreID uint, seasonID uint) error {
 	var highscore Highscore = Highscore{PlayerID: playerID, ScoreID: scoreID, SeasonID: seasonID}
-	result := s.db.FirstOrCreate(&highscore, Highscore{PlayerID: playerID, ScoreID: scoreID, SeasonID: seasonID})
+	result := s.db.Create(&highscore)
 	if result.Error != nil {
 		return result.Error
 	}
