@@ -32,14 +32,14 @@ func TestStore_EnsureSeason(t *testing.T) {
 			date:          time.Date(2023, time.July, 8, 0, 0, 0, 0, time.UTC),
 			wantErr:       false,
 			wantStartDate: time.Date(2023, time.July, 1, 0, 0, 0, 0, time.UTC),
-			wantEndDate:   time.Date(2023, time.July, 31, 0, 0, 0, 0, time.UTC),
+			wantEndDate:   time.Date(2023, time.July, 31, 23, 59, 59, 999999999, time.UTC),
 		},
 		{
 			name:          "season 2",
 			date:          time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC),
 			wantErr:       false,
 			wantStartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC),
-			wantEndDate:   time.Date(2022, time.January, 31, 0, 0, 0, 0, time.UTC),
+			wantEndDate:   time.Date(2022, time.January, 31, 23, 59, 59, 999999999, time.UTC),
 		},
 	}
 
@@ -130,52 +130,37 @@ func TestStore_GetSeasons(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		create  []Season
+		create  []time.Time
 		want    []Season
 		wantErr bool
 	}{
 		{
-			name:    "no seasons",
-			create:  []Season{},
-			want:    []Season{},
-			wantErr: false,
-		},
-		{
 			name: "one season",
-			create: []Season{
-				{
-					StartDate: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.March, 31, 0, 0, 0, 0, time.UTC),
-				},
+			create: []time.Time{
+				time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			want: []Season{
 				{
 					StartDate: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.March, 31, 0, 0, 0, 0, time.UTC),
+					EndDate:   time.Date(2021, time.January, 31, 23, 59, 59, 999999999, time.UTC),
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "two seasons",
-			create: []Season{
-				{
-					StartDate: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.March, 31, 0, 0, 0, 0, time.UTC),
-				},
-				{
-					StartDate: time.Date(2021, time.April, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.June, 30, 0, 0, 0, 0, time.UTC),
-				},
+			create: []time.Time{
+				time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2021, time.July, 15, 13, 37, 5, 69696969, time.UTC),
 			},
 			want: []Season{
 				{
 					StartDate: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.March, 31, 0, 0, 0, 0, time.UTC),
+					EndDate:   time.Date(2021, time.January, 31, 23, 59, 59, 999999999, time.UTC),
 				},
 				{
-					StartDate: time.Date(2021, time.April, 1, 0, 0, 0, 0, time.UTC),
-					EndDate:   time.Date(2021, time.June, 30, 0, 0, 0, 0, time.UTC),
+					StartDate: time.Date(2021, time.July, 1, 0, 0, 0, 0, time.UTC),
+					EndDate:   time.Date(2021, time.July, 31, 23, 59, 59, 999999999, time.UTC),
 				},
 			},
 			wantErr: false,
@@ -192,8 +177,8 @@ func TestStore_GetSeasons(t *testing.T) {
 				t.Fatalf("failed to migrate database: %v", err)
 			}
 
-			for _, s := range tt.create {
-				err := store.db.Create(&s).Error
+			for _, time := range tt.create {
+				_, err := store.EnsureSeason(time)
 				if err != nil {
 					t.Fatalf("failed to create season: %v", err)
 				}

@@ -73,10 +73,6 @@ func NewStore(db *gorm.DB) *Store {
 
 // HELPER
 
-func zeroTime(date time.Time) time.Time {
-	return time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
-}
-
 func getSeasonStartDateForDate(date time.Time) time.Time {
 	return time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
 }
@@ -96,15 +92,14 @@ func getSeasonEndDateForDate(date time.Time) time.Time {
 		}
 	}
 
-	return time.Date(date.Year(), date.Month(), lastDayOfMonth, 0, 0, 0, 0, date.Location())
+	return time.Date(date.Year(), date.Month(), lastDayOfMonth, 23, 59, 59, 999999999, date.Location())
 }
 
 // SEASON
 
 func (s *Store) EnsureSeason(date time.Time) (*Season, error) {
-	zeroedDate := zeroTime(date)
-	var season Season = Season{StartDate: getSeasonStartDateForDate(zeroedDate), EndDate: getSeasonEndDateForDate(zeroedDate)}
-	result := s.db.Where("start_date <= ? AND end_date >= ?", zeroedDate, zeroedDate).First(&season)
+	var season Season = Season{StartDate: getSeasonStartDateForDate(date), EndDate: getSeasonEndDateForDate(date)}
+	result := s.db.Where("start_date <= ? AND end_date >= ?", date, date).First(&season)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			result := s.db.Create(&season)
@@ -137,9 +132,8 @@ func (s *Store) GetSeasonByID(id uint) (*Season, error) {
 }
 
 func (s *Store) GetSeasonByDate(date time.Time) (*Season, error) {
-	zeroedDate := zeroTime(date)
 	var season Season
-	result := s.db.Where("start_date <= ? AND end_date >= ?", zeroedDate, zeroedDate).First(&season)
+	result := s.db.Where("start_date <= ? AND end_date >= ?", date, date).First(&season)
 	if result.Error != nil {
 		return nil, result.Error
 	}
