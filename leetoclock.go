@@ -97,6 +97,17 @@ func isScoreInScoreArray(s datastore.Score, a []datastore.Score) bool {
 	return false
 }
 
+func sortScoreArrayByScore(a []datastore.Score) []datastore.Score {
+	for i := 0; i < len(a); i++ {
+		for j := i + 1; j < len(a); j++ {
+			if a[j].Score < a[i].Score {
+				a[i], a[j] = a[j], a[i]
+			}
+		}
+	}
+	return a
+}
+
 func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []datastore.Score, []datastore.Score, error) {
 	scores, err := store.GetScoresForGameID(game.ID)
 	if err != nil {
@@ -112,11 +123,6 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 
 	printHeader := true
 	for _, score := range scores {
-		player, err := store.GetPlayerByID(score.PlayerID)
-		if err != nil {
-			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
-		}
-
 		if isScoreInScoreArray(score, winners) || len(winners) >= 3 {
 			continue
 		} else {
@@ -126,29 +132,33 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 					printHeader = false
 				}
 				winners = append(winners, score)
-				var award string
-				if len(winners) == 1 {
-					award = firstPlace
-				} else if len(winners) == 2 {
-					award = secondPlace
-				} else if len(winners) == 3 {
-					award = thirdPlace
-				} else {
-					award = otherPlace
-				}
 
-				scoreboard += fmt.Sprintf("%s <@%s> with %d ms (https://discord.com/channels/%s/%s/%s)\n", award, player.UserID, score.Score, channel.GuildID, game.ChannelID, score.MessageID)
 			}
 		}
 	}
+	winners = sortScoreArrayByScore(winners)
+	for i, winner := range winners {
+		var award string
+		if i == 0 {
+			award = firstPlace
+		} else if i == 1 {
+			award = secondPlace
+		} else if i == 2 {
+			award = thirdPlace
+		} else {
+			award = otherPlace
+		}
 
-	printHeader = true
-	for _, score := range scores {
-		player, err := store.GetPlayerByID(score.PlayerID)
+		player, err := store.GetPlayerByID(winner.PlayerID)
 		if err != nil {
 			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
 		}
 
+		scoreboard += fmt.Sprintf("%s <@%s> with %d ms (https://discord.com/channels/%s/%s/%s)\n", award, player.UserID, winner.Score, channel.GuildID, game.ChannelID, winner.MessageID)
+	}
+
+	printHeader = true
+	for _, score := range scores {
 		if isScoreInScoreArray(score, zonks) || isScoreInScoreArray(score, winners) {
 			continue
 		} else {
@@ -158,19 +168,21 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 					printHeader = false
 				}
 				zonks = append(zonks, score)
-
-				scoreboard += fmt.Sprintf("%s <@%s> with %d ms\n (https://discord.com/channels/%s/%s/%s)", "😭", player.UserID, score.Score, channel.GuildID, game.ChannelID, score.MessageID)
 			}
 		}
 	}
-
-	printHeader = true
-	for _, score := range scores {
-		player, err := store.GetPlayerByID(score.PlayerID)
+	zonks = sortScoreArrayByScore(zonks)
+	for _,z := range zonks {
+		player, err := store.GetPlayerByID(z.PlayerID)
 		if err != nil {
 			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
 		}
+		scoreboard += fmt.Sprintf("%s <@%s> with %d ms (https://discord.com/channels/%s/%s/%s)\n", "😭", player.UserID, z.Score, channel.GuildID, game.ChannelID, z.MessageID)
+	}
 
+
+	printHeader = true
+	for _, score := range scores {
 		if isScoreInScoreArray(score, earlyBirds) {
 			continue
 		} else {
@@ -180,18 +192,25 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 					printHeader = false
 				}
 				earlyBirds = append(earlyBirds, score)
-				var award string
-				if isScoreInScoreArray(score, zonks) {
-					award = "🫠"
-				} else if isScoreInScoreArray(score, winners) {
-					award = "😐"
-				} else {
-					award = "🤨"
-				}
-
-				scoreboard += fmt.Sprintf("%s <@%s> with %d ms\n (https://discord.com/channels/%s/%s/%s)", award, player.UserID, score.Score, channel.GuildID, game.ChannelID, score.MessageID)
 			}
 		}
+	}
+	earlyBirds = sortScoreArrayByScore(earlyBirds)
+	for _,earlyBird := range earlyBirds {
+		player, err := store.GetPlayerByID(earlyBird.PlayerID)
+		if err != nil {
+			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
+		}
+		var award string
+		if isScoreInScoreArray(earlyBird, zonks) {
+			award = "🫠"
+		} else if isScoreInScoreArray(earlyBird, winners) {
+			award = "😐"
+		} else {
+			award = "🤨"
+		}
+
+		scoreboard += fmt.Sprintf("%s <@%s> with %d ms (https://discord.com/channels/%s/%s/%s)\n", award, player.UserID, earlyBird.Score, channel.GuildID, game.ChannelID, earlyBird.MessageID)
 	}
 
 	// TODO: this "find highest score for current season" should be a function in datastore
