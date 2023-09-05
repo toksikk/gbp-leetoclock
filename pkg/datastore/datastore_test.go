@@ -32,14 +32,14 @@ func TestStore_EnsureSeason(t *testing.T) {
 			date:          time.Date(2023, time.July, 8, 0, 0, 0, 0, time.UTC),
 			wantErr:       false,
 			wantStartDate: time.Date(2023, time.July, 1, 0, 0, 0, 0, time.UTC),
-			wantEndDate:   time.Date(2023, time.September, 30, 0, 0, 0, 0, time.UTC),
+			wantEndDate:   time.Date(2023, time.July, 31, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			name:          "season 2",
 			date:          time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC),
 			wantErr:       false,
 			wantStartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC),
-			wantEndDate:   time.Date(2022, time.March, 31, 0, 0, 0, 0, time.UTC),
+			wantEndDate:   time.Date(2022, time.January, 31, 0, 0, 0, 0, time.UTC),
 		},
 	}
 

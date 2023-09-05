@@ -78,35 +78,12 @@ func zeroTime(date time.Time) time.Time {
 }
 
 func getSeasonStartDateForDate(date time.Time) time.Time {
-	var startMonth time.Month
-	switch date.Month() {
-	case time.January, time.February, time.March:
-		startMonth = time.January
-	case time.April, time.May, time.June:
-		startMonth = time.April
-	case time.July, time.August, time.September:
-		startMonth = time.July
-	case time.October, time.November, time.December:
-		startMonth = time.October
-	}
-	return time.Date(date.Year(), startMonth, 1, 0, 0, 0, 0, date.Location())
+	return time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
 }
 
 func getSeasonEndDateForDate(date time.Time) time.Time {
-	var endMonth time.Month
-	switch date.Month() {
-	case time.January, time.February, time.March:
-		endMonth = time.March
-	case time.April, time.May, time.June:
-		endMonth = time.June
-	case time.July, time.August, time.September:
-		endMonth = time.September
-	case time.October, time.November, time.December:
-		endMonth = time.December
-	}
-
 	var lastDayOfMonth int
-	switch endMonth {
+	switch date.Month() {
 	case time.January, time.March, time.May, time.July, time.August, time.October, time.December:
 		lastDayOfMonth = 31
 	case time.April, time.June, time.September, time.November:
@@ -119,7 +96,7 @@ func getSeasonEndDateForDate(date time.Time) time.Time {
 		}
 	}
 
-	return time.Date(date.Year(), endMonth, lastDayOfMonth, 0, 0, 0, 0, date.Location())
+	return time.Date(date.Year(), date.Month(), lastDayOfMonth, 0, 0, 0, 0, date.Location())
 }
 
 // SEASON
