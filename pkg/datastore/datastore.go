@@ -23,6 +23,7 @@ type Season struct {
 type Game struct {
 	gorm.Model
 	ChannelID string    `gorm:"not null"`
+	GuildID   string    `gorm:"not null"`
 	GameDate  time.Time `gorm:"not null"`
 	SeasonID  uint      `gorm:"not null"`
 	Season    Season    `gorm:"foreignKey:SeasonID"`
@@ -196,8 +197,8 @@ func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
 
 // GAME
 
-func (s *Store) CreateGame(channelID string, gameDate time.Time, seasonID uint) error {
-	var game Game = Game{ChannelID: channelID, GameDate: gameDate, SeasonID: seasonID}
+func (s *Store) CreateGame(channelID string, guildID string, gameDate time.Time, seasonID uint) error {
+	var game Game = Game{ChannelID: channelID, GuildID: guildID, GameDate: gameDate, SeasonID: seasonID}
 	result := s.db.FirstOrCreate(&game)
 	if result.Error != nil {
 		return result.Error
@@ -205,9 +206,9 @@ func (s *Store) CreateGame(channelID string, gameDate time.Time, seasonID uint) 
 	return nil
 }
 
-func (s *Store) EnsureGame(channelID string, gameDate time.Time, seasonID uint) (*Game, error) {
-	var game Game = Game{ChannelID: channelID, GameDate: gameDate, SeasonID: seasonID}
-	result := s.db.Where("channel_id = ? AND game_date = ? AND season_id = ?", channelID, gameDate, seasonID).First(&game)
+func (s *Store) EnsureGame(channelID string, guildID string, gameDate time.Time, seasonID uint) (*Game, error) {
+	var game Game = Game{ChannelID: channelID, GuildID: guildID, GameDate: gameDate, SeasonID: seasonID}
+	result := s.db.Where("channel_id = ? AND guild_id = ? AND game_date = ? AND season_id = ?", channelID, guildID, gameDate, seasonID).First(&game)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			result := s.db.Create(&game)
@@ -242,6 +243,15 @@ func (s *Store) GetGameByID(id uint) (*Game, error) {
 func (s *Store) GetGamesByChannelID(channelID string) ([]Game, error) {
 	var games []Game
 	result := s.db.Where("channel_id = ?", channelID).Find(&games)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return games, nil
+}
+
+func (s *Store) GetGamesByGuildID(guildID string) ([]Game, error) {
+	var games []Game
+	result := s.db.Where("guild_id = ?", guildID).Find(&games)
 	if result.Error != nil {
 		return nil, result.Error
 	}

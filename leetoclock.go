@@ -172,14 +172,13 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 		}
 	}
 	zonks = sortScoreArrayByScore(zonks)
-	for _,z := range zonks {
+	for _, z := range zonks {
 		player, err := store.GetPlayerByID(z.PlayerID)
 		if err != nil {
 			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
 		}
 		scoreboard += fmt.Sprintf("%s <@%s> with %d ms (https://discord.com/channels/%s/%s/%s)\n", "😭", player.UserID, z.Score, channel.GuildID, game.ChannelID, z.MessageID)
 	}
-
 
 	printHeader = true
 	for _, score := range scores {
@@ -196,7 +195,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 		}
 	}
 	earlyBirds = sortScoreArrayByScore(earlyBirds)
-	for _,earlyBird := range earlyBirds {
+	for _, earlyBird := range earlyBirds {
 		player, err := store.GetPlayerByID(earlyBird.PlayerID)
 		if err != nil {
 			return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
@@ -214,35 +213,40 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 	}
 
 	// TODO: this "find highest score for current season" should be a function in datastore
-	var memScore datastore.Score = datastore.Score{Score: 999999999999999999}
-	season, err := store.GetSeasonByDate(time.Now())
-	if err != nil {
-		logrus.Errorln(err)
-	}
-	games, err := store.GetGames()
-	if err != nil {
-		logrus.Errorln(err)
-	}
-	for _, g := range games {
-		if g.SeasonID == season.ID {
-			scores, err := store.GetScoresForGameID(g.ID)
-			if err != nil {
-				logrus.Errorln(err)
-			}
-			for _, s := range scores {
-				if s.Score >= 0 && s.Score < memScore.Score {
-					memScore = s
-				}
-			}
-		}
-	}
-	player, err := store.GetPlayerByID(memScore.PlayerID)
-	if err != nil {
-		logrus.Errorln(err)
-	}
+	// var memScore datastore.Score = datastore.Score{Score: 999999999999999999}
+	// season, err := store.GetSeasonByDate(time.Now())
+	// if err != nil {
+	// 	logrus.Errorln(err)
+	// }
+	// games, err := store.GetGames()
+	// if err != nil {
+	// 	logrus.Errorln(err)
+	// }
+	// for _, g := range games {
+	// 	if g.SeasonID == season.ID {
+	// 		scores, err := store.GetScoresForGameID(g.ID)
+	// 		if err != nil {
+	// 			logrus.Errorln(err)
+	// 		}
+	// 		for _, s := range scores {
+	// 			if s.Score >= 0 && s.Score < memScore.Score {
+	// 				memScore = s
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// player, err := store.GetPlayerByID(memScore.PlayerID)
+	// if err != nil {
+	// 	logrus.Errorln(err)
+	// }
 
-	scoreboard += fmt.Sprintf("### Current season highscore\n<@%s> with %d ms on <t:%d> (https://discord.com/channels/%s/%s/%s)\n", player.UserID, memScore.Score, memScore.CreatedAt.Unix(), channel.GuildID, game.ChannelID, memScore.MessageID)
-	scoreboard += fmt.Sprintf("\nCurrent season ends on <t:%d> (<t:%d:R>)\n", season.EndDate.Unix(), season.EndDate.Unix())
+	// memScoreChannel, err := session.ChannelMessage(memScore.ChannelID, memScore.MessageID)
+	// if err != nil {
+	// 	logrus.Errorln(err)
+	// }
+
+	// scoreboard += fmt.Sprintf("### Current season highscore\n<@%s> with %d ms on <t:%d> (https://discord.com/channels/%s/%s/%s)\n", player.UserID, memScore.Score, memScore.CreatedAt.Unix(), channel.GuildID, ChannelID, memScore.MessageID)
+	// scoreboard += fmt.Sprintf("\nCurrent season ends on <t:%d> (<t:%d:R>)\n", season.EndDate.Unix(), season.EndDate.Unix())
 
 	return scoreboard, earlyBirds, winners, zonks, nil
 }
@@ -362,7 +366,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			logrus.Errorln(err)
 		}
-		game, err := store.EnsureGame(message.ChannelID, tt, season.ID)
+		game, err := store.EnsureGame(message.ChannelID, message.GuildID, tt, season.ID)
 		if err != nil {
 			logrus.Errorln(err)
 		}
