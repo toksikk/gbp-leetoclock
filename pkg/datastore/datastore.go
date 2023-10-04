@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"database/sql"
 	"errors"
 	"time"
 
