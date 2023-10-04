@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -64,6 +65,13 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		logrus.Fatalf("failed to migrate database: %v", err)
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		logrus.Fatalf("failed to get sqlDB: %v", err)
+	}
+
+	sqlDB.SetMaxOpenConns(1) // this seems to be necessary to prevent database is locked errors
 
 	return db
 }
