@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ type Highscore struct {
 
 type Store struct {
 	db *gorm.DB
+	mu sync.Mutex
 }
 
 func InitDB() *gorm.DB {
@@ -64,13 +66,6 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		logrus.Fatalf("failed to migrate database: %v", err)
 	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		logrus.Fatalf("failed to get sqlDB: %v", err)
-	}
-
-	sqlDB.SetMaxOpenConns(1) // this seems to be necessary to prevent database is locked errors
 
 	return db
 }
@@ -106,6 +101,9 @@ func getSeasonEndDateForDate(date time.Time) time.Time {
 // SEASON
 
 func (s *Store) EnsureSeason(date time.Time) (*Season, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var season Season = Season{StartDate: getSeasonStartDateForDate(date), EndDate: getSeasonEndDateForDate(date)}
 	result := s.db.Where("start_date <= ? AND end_date >= ?", date, date).First(&season)
 	if result.Error != nil {
@@ -122,6 +120,9 @@ func (s *Store) EnsureSeason(date time.Time) (*Season, error) {
 }
 
 func (s *Store) GetSeasons() ([]Season, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var seasons []Season
 	result := s.db.Find(&seasons)
 	if result.Error != nil {
@@ -131,6 +132,9 @@ func (s *Store) GetSeasons() ([]Season, error) {
 }
 
 func (s *Store) GetSeasonByID(id uint) (*Season, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var season Season
 	result := s.db.Where("id = ?", id).First(&season)
 	if result.Error != nil {
@@ -140,6 +144,9 @@ func (s *Store) GetSeasonByID(id uint) (*Season, error) {
 }
 
 func (s *Store) GetSeasonByDate(date time.Time) (*Season, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var season Season
 	result := s.db.Where("start_date <= ? AND end_date >= ?", date, date).First(&season)
 	if result.Error != nil {
@@ -151,6 +158,9 @@ func (s *Store) GetSeasonByDate(date time.Time) (*Season, error) {
 // PLAYER
 
 func (s *Store) CreatePlayer(userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var player Player = Player{UserID: userID}
 	result := s.db.Create(&player)
 	if result.Error != nil {
@@ -160,6 +170,9 @@ func (s *Store) CreatePlayer(userID string) error {
 }
 
 func (s *Store) EnsurePlayer(userID string) (*Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var player Player = Player{UserID: userID}
 	result := s.db.Where("user_id = ?", userID).First(&player)
 	if result.Error != nil {
@@ -176,6 +189,9 @@ func (s *Store) EnsurePlayer(userID string) (*Player, error) {
 }
 
 func (s *Store) GetPlayers() ([]Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var players []Player
 	result := s.db.Find(&players)
 	if result.Error != nil {
@@ -185,6 +201,9 @@ func (s *Store) GetPlayers() ([]Player, error) {
 }
 
 func (s *Store) GetPlayerByID(id uint) (*Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var player Player
 	result := s.db.Where("id = ?", id).First(&player)
 	if result.Error != nil {
@@ -194,6 +213,9 @@ func (s *Store) GetPlayerByID(id uint) (*Player, error) {
 }
 
 func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var player Player
 	result := s.db.Where("user_id = ?", userID).First(&player)
 	if result.Error != nil {
@@ -205,6 +227,9 @@ func (s *Store) GetPlayerByUserID(userID string) (*Player, error) {
 // GAME
 
 func (s *Store) CreateGame(channelID string, guildID string, gameDate time.Time, seasonID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var game Game = Game{ChannelID: channelID, GuildID: guildID, GameDate: gameDate, SeasonID: seasonID}
 	result := s.db.FirstOrCreate(&game)
 	if result.Error != nil {
@@ -214,6 +239,9 @@ func (s *Store) CreateGame(channelID string, guildID string, gameDate time.Time,
 }
 
 func (s *Store) EnsureGame(channelID string, guildID string, gameDate time.Time, seasonID uint) (*Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var game Game = Game{ChannelID: channelID, GuildID: guildID, GameDate: gameDate, SeasonID: seasonID}
 	result := s.db.Where("channel_id = ? AND guild_id = ? AND game_date = ? AND season_id = ?", channelID, guildID, gameDate, seasonID).First(&game)
 	if result.Error != nil {
@@ -230,6 +258,9 @@ func (s *Store) EnsureGame(channelID string, guildID string, gameDate time.Time,
 }
 
 func (s *Store) GetGames() ([]Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var games []Game
 	result := s.db.Find(&games)
 	if result.Error != nil {
@@ -239,6 +270,9 @@ func (s *Store) GetGames() ([]Game, error) {
 }
 
 func (s *Store) GetGameByID(id uint) (*Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var game Game
 	result := s.db.Where("id = ?", id).First(&game)
 	if result.Error != nil {
@@ -248,6 +282,9 @@ func (s *Store) GetGameByID(id uint) (*Game, error) {
 }
 
 func (s *Store) GetGamesByChannelID(channelID string) ([]Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var games []Game
 	result := s.db.Where("channel_id = ?", channelID).Find(&games)
 	if result.Error != nil {
@@ -257,6 +294,9 @@ func (s *Store) GetGamesByChannelID(channelID string) ([]Game, error) {
 }
 
 func (s *Store) GetGamesByGuildID(guildID string) ([]Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var games []Game
 	result := s.db.Where("guild_id = ?", guildID).Find(&games)
 	if result.Error != nil {
@@ -266,6 +306,9 @@ func (s *Store) GetGamesByGuildID(guildID string) ([]Game, error) {
 }
 
 func (s *Store) GetGamesByDate(date time.Time) ([]Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var games []Game
 	startDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endDate := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 0, date.Location())
@@ -277,6 +320,9 @@ func (s *Store) GetGamesByDate(date time.Time) ([]Game, error) {
 }
 
 func (s *Store) GetGameBySpecificDateTimeAndChannelID(gameDate time.Time, channelID string) (*Game, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var game Game
 	result := s.db.Where("game_date = ? AND channel_id = ?", gameDate, channelID).First(&game)
 	if result.Error != nil {
@@ -293,6 +339,9 @@ func (s *Store) GetGameBySpecificDateTimeAndChannelID(gameDate time.Time, channe
 // SCORE
 
 func (s *Store) CreateScore(messageID string, playerID uint, score int, gameID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var scoreObj Score = Score{MessageID: messageID, PlayerID: playerID, Score: score, GameID: gameID}
 	result := s.db.Create(&scoreObj)
 	if result.Error != nil {
@@ -302,6 +351,9 @@ func (s *Store) CreateScore(messageID string, playerID uint, score int, gameID u
 }
 
 func (s *Store) GetScores() ([]Score, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var scores []Score
 	result := s.db.Find(&scores)
 	if result.Error != nil {
@@ -311,6 +363,9 @@ func (s *Store) GetScores() ([]Score, error) {
 }
 
 func (s *Store) GetScoreByID(id uint) (*Score, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var score Score
 	result := s.db.Where("id = ?", id).First(&score)
 	if result.Error != nil {
@@ -320,6 +375,9 @@ func (s *Store) GetScoreByID(id uint) (*Score, error) {
 }
 
 func (s *Store) GetScoresForGameID(gameID uint) ([]Score, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var scores []Score
 	result := s.db.Where("game_id = ?", gameID).Find(&scores)
 	if result.Error != nil {
@@ -331,6 +389,9 @@ func (s *Store) GetScoresForGameID(gameID uint) ([]Score, error) {
 // HIGHSCORE
 
 func (s *Store) CreateHighscore(playerID uint, scoreID uint, seasonID uint) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var highscore Highscore = Highscore{PlayerID: playerID, ScoreID: scoreID, SeasonID: seasonID}
 	result := s.db.Create(&highscore)
 	if result.Error != nil {
@@ -340,6 +401,9 @@ func (s *Store) CreateHighscore(playerID uint, scoreID uint, seasonID uint) erro
 }
 
 func (s *Store) GetHighscores() ([]Highscore, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var highscores []Highscore
 	result := s.db.Find(&highscores)
 	if result.Error != nil {
@@ -349,6 +413,9 @@ func (s *Store) GetHighscores() ([]Highscore, error) {
 }
 
 func (s *Store) GetHighscoreByID(id uint) (*Highscore, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var highscore Highscore
 	result := s.db.Where("id = ?", id).First(&highscore)
 	if result.Error != nil {
@@ -358,6 +425,9 @@ func (s *Store) GetHighscoreByID(id uint) (*Highscore, error) {
 }
 
 func (s *Store) GetHighscoreByPlayerIDAndSeasonID(playerID uint, seasonID uint) (*Highscore, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var highscore Highscore
 	result := s.db.Where("player_id = ? AND season_id = ?", playerID, seasonID).First(&highscore)
 	if result.Error != nil {
