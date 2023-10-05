@@ -113,6 +113,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 	if err != nil {
 		return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
 	}
+	scores = sortScoreArrayByScore(scores)
 	channel, _ := session.Channel(game.ChannelID)
 
 	scoreboard := fmt.Sprintf("## 1337erboard for <t:%d>\n", tt.Unix())
@@ -136,7 +137,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	winners = sortScoreArrayByScore(winners)
+	
 	for i, winner := range winners {
 		var award string
 		if i == 0 {
@@ -171,7 +172,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	zonks = sortScoreArrayByScore(zonks)
+	
 	for _, z := range zonks {
 		player, err := store.GetPlayerByID(z.PlayerID)
 		if err != nil {
@@ -194,7 +195,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	earlyBirds = sortScoreArrayByScore(earlyBirds)
+	
 	for _, earlyBird := range earlyBirds {
 		player, err := store.GetPlayerByID(earlyBird.PlayerID)
 		if err != nil {
