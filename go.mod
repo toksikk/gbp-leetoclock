@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/sqlite v1.5.3
-	gorm.io/gorm v1.25.4
+	gorm.io/gorm v1.25.5
 )
 
 require (
