@@ -109,25 +109,11 @@ func sortScoreArrayByScore(a []datastore.Score) []datastore.Score {
 }
 
 func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []datastore.Score, []datastore.Score, error) {
-	// test to enable guild wide scoreboard
-	slog.Info("start of guild wide scoreboard test")
-	newScores, err := store.GetScoresForGuildID(game.GuildID)
-	if err != nil {
-		slog.Error("Error while getting scores for guild", "Guild", game.GuildID, "Error", err)
-	}
-	slog.Info("newScores", "newScores", newScores)
-
-	// this has to be moved out of test section after testing
 	scores, err := store.GetScoresForGameID(game.ID)
 	if err != nil {
 		slog.Error("Error while getting scores for game", "Game", game, "Error", err)
 		return "", []datastore.Score{}, []datastore.Score{}, []datastore.Score{}, err
 	}
-	// until here
-
-	slog.Info("traditional scores", "scores", scores)
-	slog.Info("end of guild wide scoreboard test")
-	// end test
 
 	scores = sortScoreArrayByScore(scores)
 	channel, _ := session.Channel(game.ChannelID)
