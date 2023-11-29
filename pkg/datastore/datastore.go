@@ -2,10 +2,11 @@ package datastore
 
 import (
 	"errors"
+	"log/slog"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -59,12 +60,14 @@ func InitDB() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("plugins/leetoclock.sqlite"), &gorm.Config{})
 
 	if err != nil {
-		logrus.Fatalf("failed to connect database: %v", err)
+		slog.Error("failed to connect database", "Error", err)
+		os.Exit(1)
 	}
 
 	err = db.AutoMigrate(&Player{}, &Season{}, &Game{}, &Score{}, &Highscore{})
 	if err != nil {
-		logrus.Fatalf("failed to migrate database: %v", err)
+		slog.Error("failed to migrate database", "Error", err)
+		os.Exit(1)
 	}
 
 	return db
@@ -326,10 +329,10 @@ func (s *Store) GetGameBySpecificDateTimeAndChannelID(gameDate time.Time, channe
 	var game Game
 	result := s.db.Where("game_date = ? AND channel_id = ?", gameDate, channelID).First(&game)
 	if result.Error != nil {
-		logrus.Errorln("AN ERROR OCCURED")
+		slog.Error("AN ERROR OCCURED", "Error", result.Error)
 		games, _ := s.GetGames()
 		for _, g := range games {
-			logrus.Infoln(g)
+			slog.Info("GAME", "Game", g)
 		}
 		return nil, result.Error
 	}

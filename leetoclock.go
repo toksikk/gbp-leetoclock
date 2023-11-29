@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/sirupsen/logrus"
 	"github.com/toksikk/gbp-leetoclock/pkg/datastore"
 	"github.com/toksikk/gbp-leetoclock/pkg/helper"
 )
@@ -49,7 +49,7 @@ func Start(discord *discordgo.Session) {
 		t := time.Now()
 		target := t.Add(time.Minute * 1)
 		tHourInt, tMinuteInt = target.Hour(), target.Minute()
-		logrus.Debugln("Updated target time to", tHourInt, tMinuteInt)
+		slog.Debug("Updated target time", "Hour", tHourInt, "Minute", tMinuteInt)
 	}
 	if os.Getenv("LEETOCLOCK_DEBUG_CHANNEL") != "" {
 		announcementChannels = append(announcementChannels, os.Getenv("LEETOCLOCK_DEBUG_CHANNEL"))
@@ -80,7 +80,7 @@ func announcePreparation() {
 		for _, v := range announcementChannels {
 			_, err := session.ChannelMessageSend(v, fmt.Sprintf("## Leet o'Clock scheduled:\n<t:%d:R>", tt.Unix()))
 			if err != nil {
-				logrus.Errorln(err)
+				slog.Error("Error while sending preparation announcement", "Error", err)
 			}
 		}
 		time.Sleep(2 * time.Minute)
@@ -137,7 +137,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	
+
 	for i, winner := range winners {
 		var award string
 		if i == 0 {
@@ -172,7 +172,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	
+
 	for _, z := range zonks {
 		player, err := store.GetPlayerByID(z.PlayerID)
 		if err != nil {
@@ -195,7 +195,7 @@ func buildScoreboardForGame(game datastore.Game) (string, []datastore.Score, []d
 			}
 		}
 	}
-	
+
 	for _, earlyBird := range earlyBirds {
 		player, err := store.GetPlayerByID(earlyBird.PlayerID)
 		if err != nil {
@@ -261,7 +261,7 @@ func renewReactions(game datastore.Game) {
 
 	_, earlybirds, winners, zonks, err := buildScoreboardForGame(game)
 	if err != nil {
-		logrus.Errorln(err)
+		slog.Error("Error while building scoreboard", "Error", err)
 		return
 	}
 
@@ -305,18 +305,18 @@ func announceTodaysWinners() {
 		time.Sleep(62 * time.Second)
 		games, err := store.GetGamesByDate(time.Now())
 		if err != nil {
-			logrus.Errorln(err)
+			slog.Error("Error while getting games by date", "Error", err)
 			return
 		}
 		for _, game := range games {
 			scoreboard, _, _, _, err := buildScoreboardForGame(game)
 			if err != nil {
-				logrus.Errorln(err)
+				slog.Error("Error while building scoreboard", "Error", err)
 				return
 			}
 			_, err = session.ChannelMessageSend(game.ChannelID, scoreboard)
 			if err != nil {
-				logrus.Errorln(err)
+				slog.Error("Error while sending scoreboard", "Error", err)
 			}
 		}
 	}
@@ -365,19 +365,19 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if isOnTargetTimeRange(messageTimestamp, false) {
 		season, err := store.EnsureSeason(time.Now())
 		if err != nil {
-			logrus.Errorln(err)
+			slog.Error("Error while ensuring season", "Error", err)
 		}
 		game, err := store.EnsureGame(message.ChannelID, message.GuildID, tt, season.ID)
 		if err != nil {
-			logrus.Errorln(err)
+			slog.Error("Error while ensuring game", "Error", err)
 		}
 		player, err := store.EnsurePlayer(message.Author.ID)
 		if err != nil {
-			logrus.Errorln(err)
+			slog.Error("Error while ensuring player", "Error", err)
 		}
 		err = store.CreateScore(message.ID, player.ID, calculateScore(messageTimestamp), game.ID)
 		if err != nil {
-			logrus.Errorln(err)
+			slog.Error("Error while creating score", "Error", err)
 		}
 
 		if isOnTargetTimeRange(messageTimestamp, true) {

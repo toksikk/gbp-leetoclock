@@ -1,10 +1,9 @@
 package helper
 
 import (
+	"log/slog"
 	"strconv"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 func idToTimestamp(id string) (int64, error) {
@@ -25,7 +24,7 @@ func idToTimestamp(id string) (int64, error) {
 func GetTimestampOfMessage(messageID string) time.Time {
 	timestamp, err := idToTimestamp(messageID)
 	if err != nil {
-		logrus.Errorln(err)
+		slog.Error("Error while converting messageID to timestamp", "Error", err)
 		return time.Time{}
 	}
 	return time.UnixMilli(timestamp)
