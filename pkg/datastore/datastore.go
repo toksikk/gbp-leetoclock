@@ -389,6 +389,18 @@ func (s *Store) GetScoresForGameID(gameID uint) ([]Score, error) {
 	return scores, nil
 }
 
+func (s *Store) GetScoresForGuildID(guildID string) ([]Score, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var scores []Score
+	result := s.db.Joins("JOIN games ON scores.game_id = games.id").Where("games.guild_id = ?", guildID).Find(&scores)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return scores, nil
+}
+
 // HIGHSCORE
 
 func (s *Store) CreateHighscore(playerID uint, scoreID uint, seasonID uint) error {
