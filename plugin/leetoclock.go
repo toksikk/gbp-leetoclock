@@ -1,4 +1,4 @@
-package main
+package gbpleetoclock
 
 import (
 	"fmt"
@@ -11,9 +11,8 @@ import (
 	"github.com/toksikk/gbp-leetoclock/pkg/helper"
 )
 
+// PluginName is the name of the plugin
 var PluginName = "leetoclock"
-var PluginVersion = ""
-var PluginBuilddate = ""
 
 var tt time.Time
 
@@ -40,6 +39,7 @@ var announcementChannels = []string{}
 
 var store *datastore.Store
 
+// Start the plugin
 func Start(discord *discordgo.Session) {
 	session = discord
 	store = datastore.NewStore(datastore.InitDB())
