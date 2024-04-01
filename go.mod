@@ -3,7 +3,7 @@ module github.com/toksikk/gbp-leetoclock
 go 1.20
 
 require (
-	github.com/bwmarrin/discordgo v0.27.1
+	github.com/bwmarrin/discordgo v0.28.1
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gorm v1.25.8
 )
