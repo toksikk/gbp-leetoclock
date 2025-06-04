@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	gorm.io/driver/sqlite v1.5.5
-	gorm.io/gorm v1.25.8
+	gorm.io/driver/sqlite v1.6.0
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -16,4 +16,5 @@ require (
 	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 )
